@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PostgreSQL Internal Architecture: MVCC, WAL, and Buffer Management</title>
+</head>
+<body>
+    <h1>PostgreSQL Internal Architecture: MVCC, WAL, and Buffer Management</h1>
+    <p>PostgreSQL is a powerful, enterprise-grade open-source object-relational database system known for reliability, feature robustness, and strict ACID compliance. PostgreSQL operates on a process-per-connection client/server architecture coordinated by the postmaster daemon.</p>
+
+    <h2>Multi-Version Concurrency Control (MVCC)</h2>
+    <p>PostgreSQL uses Multi-Version Concurrency Control (MVCC) to achieve high concurrency without read-write locking conflicts: readers never block writers, and writers never block readers. Every tuple (row) stored in a table page includes two transaction ID header fields: xmin (the transaction ID that inserted the row) and xmax (the transaction ID that deleted or replaced the row). When a row is updated, PostgreSQL does not overwrite the existing row in place; instead, it marks the old row xmax with the updating transaction ID and inserts a completely new physical row version with its own xmin. Active transactions inspect a snapshot of active transaction IDs at statement or transaction start to determine which tuple versions are visible.</p>
+
+    <h2>Vacuuming and Table Bloat</h2>
+    <p>Because UPDATE and DELETE operations leave old tuple versions (dead tuples) in data pages, PostgreSQL relies on the VACUUM process to reclaim disk space occupied by dead rows. The standard VACUUM process marks dead tuple space as reusable for subsequent INSERTs without locking the table against concurrent reads or writes. In addition, autovacuum runs automatically in the background based on configurable update/delete thresholds. VACUUM FULL physically rewrites the entire table to a new disk file to reclaim unused space back to the operating system, but requires an exclusive ACCESS EXCLUSIVE lock on the table.</p>
+
+    <h2>Write-Ahead Logging (WAL) and Crash Recovery</h2>
+    <p>PostgreSQL guarantees durability through Write-Ahead Logging (WAL). Before any modification to a data page in the shared buffer cache can be written to persistent table files on disk, the corresponding WAL record describing the change must be safely flushed to the sequential WAL segment file (fsync). In the event of an unexpected crash or power loss, PostgreSQL initiates crash recovery on restart: it replays WAL records from the last valid checkpoint up to the end of the log (Redo log processing), bringing table pages back to a consistent state.</p>
+
+    <h2>Shared Buffer Cache and Background Writer</h2>
+    <p>PostgreSQL manages an in-memory buffer pool known as shared_buffers. When queries read or modify table pages, they are read from disk into shared buffer frames. The background writer (bgwriter) process periodically flushes dirty shared buffer pages to the operating system filesystem cache in small batches, preventing checkpoints and normal query backends from being overwhelmed by disk I/O bursts.</p>
+</body>
+</html>

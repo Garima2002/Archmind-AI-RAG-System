@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: archimind-pgvector
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-archimind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-archimind_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-archimind_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-archimind} -d ${POSTGRES_DB:-archimind_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: archimind-api
+    restart: unless-stopped
+    depends_on:
+      pgvector:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - VECTOR_STORE_TYPE=pgvector
+      - POSTGRES_HOST=pgvector
+      - POSTGRES_PORT=5432
+      - POSTGRES_URL=postgresql+psycopg://archimind:archimind_secret@pgvector:5432/archimind_db
+      - KMP_DUPLICATE_LIB_OK=TRUE
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  postgres_data:

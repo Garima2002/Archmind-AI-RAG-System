@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Amazon DynamoDB Core Architecture and Distributed Design</title>
+</head>
+<body>
+    <h1>Amazon DynamoDB Core Architecture and Distributed Design</h1>
+    <p>Amazon DynamoDB is a fully managed, serverless, NoSQL database service engineered to provide single-digit millisecond latency at any scale. Based on the principles established in the classic 2007 Amazon Dynamo paper, DynamoDB partitions data horizontally across solid-state drives (SSDs) and replicates items across multiple Availability Zones (AZs).</p>
+
+    <h2>Primary Keys and Partitioning Scheme</h2>
+    <p>DynamoDB supports two types of primary keys: a simple partition key (Hash Key) or a composite primary key consisting of a partition key and a sort key (Range Key). DynamoDB uses an internal MD5-based consistent hashing function on the partition key value to assign items to specific physical storage partitions. When a table has a composite primary key, all items with the exact same partition key value are stored physically contiguous on the same partition, ordered by the sort key value. This layout facilitates efficient Range queries (begins_with, between, greater than) within a partition.</p>
+
+    <h2>Replication and Read Consistency Models</h2>
+    <p>DynamoDB automatically replicates every storage partition across a three-node storage replica group spanning distinct Availability Zones. One of the replicas is designated as the Paxos leader for that partition group. Write operations must be committed by a Paxos quorum (at least two out of three storage nodes) before DynamoDB acknowledges success to the client. When reading items, DynamoDB provides two consistency options: Eventually Consistent Reads (the default, which queries any available replica and uses half the Read Capacity Units) and Strongly Consistent Reads (which queries the Paxos leader or a verified updated replica to reflect all prior successful writes, consuming full RCUs).</p>
+
+    <h2>Secondary Indexes: GSI and LSI</h2>
+    <p>DynamoDB allows querying data using attributes outside the primary key through secondary indexes. A Local Secondary Index (LSI) shares the same partition key as the base table but specifies an alternative sort key. LSIs must be defined at table creation time, share the base table partition size limit of 10GB per partition key, and support strongly consistent reads. A Global Secondary Index (GSI) can have an entirely different partition key and sort key from the base table. GSIs can be created or deleted dynamically on existing tables, scale independently without partition size limits, and only support eventually consistent reads replicated asynchronously via the base table update stream.</p>
+
+    <h2>ACID Transactions and Concurrency Control</h2>
+    <p>DynamoDB provides native support for multi-item, all-or-nothing ACID transactions across multiple tables within the same AWS account and region using TransactWriteItems and TransactGetItems APIs. DynamoDB achieves transactional guarantees through a two-phase commit protocol coordinated by an internal transaction coordinator service without long-lived database locks. Optimistic concurrency control is implemented using Condition Expressions (such as checking attribute_exists or expected version numbers before applying writes).</p>
+</body>
+</html>

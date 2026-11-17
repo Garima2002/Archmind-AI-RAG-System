@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>In Search of an Understandable Consensus Algorithm: Raft</title>
+</head>
+<body>
+    <h1>In Search of an Understandable Consensus Algorithm: Raft</h1>
+    <p>Raft is a distributed consensus algorithm designed by Diego Ongaro and John Ousterhout as an understandable and reliable alternative to Paxos. Consensus algorithms allow a collection of distributed machines to work as a coherent group that can survive the failures of some of its members.</p>
+
+    <h2>Node Roles and Terms</h2>
+    <p>At any given time, every node in a Raft cluster is in one of three states: Leader, Follower, or Candidate. In normal operation, there is exactly one leader and all remaining nodes are followers. Time in Raft is divided into arbitrary numbered Terms of arbitrary length, acting as a logical clock. Each term begins with an election. If an election results in a split vote, that term ends without a leader and a new term begins immediately. Raft ensures that there is at most one leader per term.</p>
+
+    <h2>Leader Election and Heartbeats</h2>
+    <p>Followers remain passive as long as they receive periodic heartbeats (AppendEntries RPCs with no log entries) from the current leader. If a follower experiences an election timeout (a randomized interval between 150ms and 300ms) without receiving a heartbeat, it assumes the leader has failed, increments its current term, transitions to Candidate, votes for itself, and broadcasts RequestVote RPCs to all peers. A candidate wins the election if it receives votes from a strict majority (quorum, (N/2)+1) of cluster nodes. Randomized election timeouts spread candidate timers to prevent perpetual split votes.</p>
+
+    <h2>Log Replication and Commit Invariant</h2>
+    <p>Once a leader is elected, it begins servicing client write commands. The leader appends each command to its own log as a new entry, and sends AppendEntries RPCs in parallel to all followers to replicate the entry. When the entry has been safely replicated on a majority of the nodes, the leader considers the entry committed. The leader then executes the command against its state machine and returns the result to the client. The leader tracks the highest committed index and includes it in subsequent AppendEntries RPCs so followers can commit and apply entries to their local state machines.</p>
+
+    <h2>Safety and Election Restriction</h2>
+    <p>Raft enforces strict safety invariants to ensure that state machines execute identical commands in identical order. The Leader Completeness Property guarantees that if a log entry is committed in a given term, that entry will be present in the logs of the leaders for all higher terms. Raft accomplishes this via the Election Restriction: a voter denies its vote in a RequestVote RPC if the candidate log is less up-to-date than the voter own log. Up-to-dateness is determined by comparing the term of the last log entries (higher term wins); if terms are equal, the longer log is more up-to-date.</p>
+</body>
+</html>

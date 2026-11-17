@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Envoy Proxy Architecture and Network Threading Model</title>
+</head>
+<body>
+    <h1>Envoy Proxy Architecture and Network Threading Model</h1>
+    <p>Envoy is an open-source, high-performance edge and service proxy designed for cloud-native applications and service mesh architectures. Written in C++11, Envoy operates as an L3/L4 network proxy and L7 application proxy with minimal memory footprint and zero external dependencies.</p>
+
+    <h2>Threading Model and Event-Driven Concurrency</h2>
+    <p>Envoy uses a single-process, multi-threaded event-driven threading architecture. A single main master thread is responsible for server startup, shutdown, admin console handling, and dynamic configuration synchronization via discovery services (xDS). Once initialization completes, the main thread spawns a configurable number of worker threads (typically matching the host CPU core count). Each worker thread runs a dedicated, non-blocking libevent event loop that independently binds to listener sockets (using SO_REUSEPORT) to accept new client TCP connections. Once accepted, a connection is bound to that specific worker thread for its entire lifecycle, eliminating multi-threaded locking overhead and race conditions.</p>
+
+    <h2>Listeners, Filter Chains, and Routing</h2>
+    <p>An Envoy Listener is a named network endpoint (IP address and port or UNIX domain socket) that accepts incoming client connections. When a connection arrives at a listener, Envoy passes the byte stream through an ordered sequence of Network Filters (L4 filters, such as TLS inspector or TCP proxy). For HTTP traffic, the HTTP Connection Manager (HCM) filter parses HTTP/1.1, HTTP/2, or HTTP/3 frames and passes requests through a configured chain of HTTP Filters (L7 filters, such as rate limiting, JWT authentication, CORS, and compression). The terminal filter in HCM is typically the Router Filter, which evaluates route tables and matches request paths and headers to upstream clusters.</p>
+
+    <h2>Clusters, Endpoints, and Load Balancing</h2>
+    <p>In Envoy terminology, a Cluster represents a logical group of upstream hosts (endpoints) that provide the same service. Envoy supports static cluster configurations as well as dynamic endpoint discovery using EDS (Endpoint Discovery Service). Envoy implements multiple load balancing algorithms across healthy cluster endpoints: Weighted Round Robin, Least Request (which selects the host with the fewest active requests), Ring Hash (consistent hashing for cache affinity), Maglev, and Random. Envoy maintains continuous health checking (active HTTP/TCP pings and passive outlier detection / circuit breaking) to automatically eject failing upstream instances.</p>
+
+    <h2>Dynamic Configuration: The xDS Protocol</h2>
+    <p>A primary architectural differentiator of Envoy is dynamic discovery without server restarts. Through the xDS management API (gRPC streaming protocol), Envoy dynamically discovers Listeners (LDS), Routes (RDS), Clusters (CDS), Endpoints (EDS), and Secrets (SDS). Dynamic configuration updates are staged and swapped atomically in memory without interrupting in-flight requests or dropping open connections.</p>
+</body>
+</html>

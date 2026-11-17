@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apache Kafka Architecture and Design</title>
+</head>
+<body>
+    <h1>Apache Kafka Architecture and Design</h1>
+    <p>Apache Kafka is a distributed event streaming platform capable of handling trillions of events a day. At its core, Kafka is designed as a distributed, partitioned, replicated commit log service.</p>
+    
+    <h2>Kafka Storage and Log Architecture</h2>
+    <p>A Kafka topic is divided into one or more partitions. A partition is an ordered, immutable sequence of records that is continually appended to a structured commit log. Each record in a partition is assigned a sequential, monotonically increasing integer called an offset that uniquely identifies each record within the partition. Kafka stores partition logs as a sequence of segment files on the local filesystem. Segments have a configurable max size (default 1GB) or time roll limit. When a segment reaches this limit, it is closed and a new active segment is created. Kafka uses the OS page cache extensively rather than maintaining an in-process cache, allowing zero-copy network transmission via sendfile syscalls.</p>
+
+    <h2>Partitioning and Ordering Guarantees</h2>
+    <p>Kafka provides a total order over records within a single partition, but does not guarantee global ordering across multiple partitions within the same topic. If a producer specifies a partition key for a message, Kafka computes a hash of the key (using the murmur2 algorithm by default) modulo the number of partitions to deterministically assign the record to a partition. Messages with the same key are guaranteed to land on the same partition, preserving strict chronological processing order for that key.</p>
+
+    <h2>Replication and High Availability</h2>
+    <p>Each partition has a single leader broker and zero or more follower replica brokers. All read and write requests are routed to the partition leader by default. Followers replicate data by issuing Fetch requests to the leader just like standard consumers. Kafka maintains an In-Sync Replicas (ISR) set for each partition, consisting of replicas that are actively keeping up with the leader log without lagging beyond replica.lag.time.max.ms. A message is committed only after all ISR replicas have acknowledged writing it to their local log. The parameter min.insync.replicas defines the minimum number of ISR members that must acknowledge a write for the producer to receive a successful acknowledgment when acks=all.</p>
+
+    <h2>KRaft Consensus and Controller</h2>
+    <p>In modern Kafka deployments, cluster coordination and metadata management are handled by the KRaft (Kafka Raft Metadata Mode) consensus protocol, completely removing the dependency on external Apache ZooKeeper. In KRaft mode, a dedicated quorum of controller nodes maintains an internal metadata topic using a Raft-based consensus algorithm. Metadata changes are replicated as log entries, providing sub-second failover times and enabling Kafka clusters to scale to millions of partitions.</p>
+
+    <h2>Consumer Groups and Rebalancing</h2>
+    <p>Kafka consumers subscribe to topics as part of a consumer group. Each partition in a topic is assigned to exactly one consumer instance within the group at any given time, allowing scalable parallel processing. If a consumer crashes or a new consumer joins, Kafka triggers a consumer group rebalance. Modern Kafka supports cooperative sticky rebalancing, which revokes and reassigns only the partitions that need to migrate rather than stopping all consumption across the entire group (stop-the-world eager rebalance).</p>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redis Architecture: In-Memory Data Store, Persistence, and High Availability</title>
+</head>
+<body>
+    <h1>Redis Architecture: In-Memory Data Store, Persistence, and High Availability</h1>
+    <p>Redis is an open-source, in-memory data structure store used as a database, cache, streaming engine, and message broker. Redis delivers sub-millisecond latency by serving all operational data directly from primary RAM.</p>
+
+    <h2>Threading Model and Event Loop</h2>
+    <p>Redis traditionally operates on a single-threaded event loop architecture using multiplexed I/O (such as epoll on Linux, kqueue on macOS). By executing commands in a single main thread, Redis avoids lock contention, race conditions, context switching overhead, and thread synchronization deadlocks. In Redis 6.0 and later, multi-threading was introduced specifically for offloading socket I/O operations (reading network buffers and writing client responses), while command parsing and memory execution remain single-threaded to preserve atomic semantics.</p>
+
+    <h2>Persistence Options: RDB and AOF</h2>
+    <p>Redis offers two primary persistence mechanisms: RDB (Redis Database snapshots) and AOF (Append Only File). RDB creates point-in-time snapshot dumps of the entire dataset at specified intervals. It uses the fork() system call to create a child process that writes memory to disk using Copy-On-Write (COW), minimizing impact on parent latency. However, any data written between snapshots is lost in a catastrophic failure. AOF logs every write command received by the server to an append-only log file on disk. AOF offers configurable fsync policies: fsync every query (safest, lowest throughput), fsync every second (industry standard balance between performance and durability with at most 1 second of data loss), or fsync never (relying on OS buffers). Redis also supports background AOF rewrite (BGREWRITEAOF) to compact bloated logs into minimal representation.</p>
+
+    <h2>Replication and Redis Sentinel</h2>
+    <p>Redis uses asynchronous primary-replica replication. A primary node streams write commands to replica nodes over an established TCP connection. Replication is non-blocking on the primary. Redis Sentinel provides high availability, monitoring, notification, and automated failover for standalone Redis instances. Sentinel nodes form a distributed quorum to detect primary node heartbeats. If a primary fails to respond within down-after-milliseconds, Sentinels vote to declare Subjective Down (SDOWN) and Objective Down (ODOWN), automatically electing a new primary and reconfiguring remaining replicas.</p>
+
+    <h2>Redis Cluster and Hash Slots</h2>
+    <p>Redis Cluster provides distributed horizontal scaling and automatic data sharding across multiple nodes without requiring an external proxy. The key space is partitioned into exactly 16,384 hash slots. To determine which slot a key belongs to, Redis computes CRC16(key) modulo 16384. Hash tags (enclosed in curly braces like {user123}:profile) allow forcing multiple related keys into the exact same hash slot to enable multi-key operations. Redis Cluster uses a gossip protocol for node discovery, cluster state propagation, and slot rebalancing.</p>
+</body>
+</html>
