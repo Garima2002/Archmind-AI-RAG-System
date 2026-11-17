@@ -424,3 +424,5 @@ npm run preview
 ## License
 
 This project is licensed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
+# Archmind-AI-RAG-System
+A RAG-based AI assistant for system design and technical documentation, delivering evidence-grounded answers with source citations, semantic search, and retrieval evaluation.
